@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: sangam-client
-          image: abuabddullah/sangam-client:3e13a3ae0f6743da3a4ca97524933504ffdbc868
+          image: abuabddullah/sangam-client:e1e64e0cb1ad77349cdd1e74d4d850d8d301fcfa
           ports:
             - containerPort: 80
           resources:
