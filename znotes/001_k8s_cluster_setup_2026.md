@@ -1,5 +1,33 @@
 # Kubernetes Cluster Setup — 2026 Edition (v1.32)
 
+## K8s চালানোর tool গুলো — পার্থক্য
+
+```
+Minikube  → laptop এ single-node cluster, শুধু শেখার জন্য, production না
+kubeadm   → real server এ full cluster bootstrap করার tool (তুমি এটা use করেছো)
+K3s       → lightweight K8s, কম RAM/CPU লাগে, edge/IoT/Raspberry Pi তে popular
+EKS/GKE   → cloud managed K8s, setup ঝামেলা নেই
+```
+
+**Analogy:**
+```
+Minikube  → driving simulator (শেখার জন্য)
+kubeadm   → গাড়ি নিজে assemble করা (full control)
+K3s       → ready-made compact car (কম resource)
+EKS/GKE   → Uber — নিজে গাড়ি চালাতে হয় না
+```
+
+**কোনটা কখন:**
+```
+laptop এ practice         → Minikube (বা kind)
+AWS/bare-metal production → kubeadm
+resource কম, edge/IoT     → K3s
+managed, ঝামেলা নেই       → AWS EKS / GKE / AKS
+```
+
+---
+
+
 > এই নোটটি আপনার পুরনো 2021 স্লাইডের ক্রম অনুসরণ করে বানানো, কিন্তু **2026 সালের জন্য আপডেট করা**।
 > পুরনো স্লাইডের যেসব কমান্ড এখন আর কাজ করে না, সেগুলো ঠিক করে দেওয়া হয়েছে এবং ⚠️ দিয়ে চিহ্নিত করা হয়েছে।
 > কমান্ডগুলো ধাপে ধাপে কপি-পেস্ট করলেই কাজ হবে।

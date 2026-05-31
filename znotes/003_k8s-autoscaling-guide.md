@@ -177,6 +177,33 @@ averageUtilization: 70%
 সব pod এর গড় CPU < 70m → scale down
 ```
 
+**Scale up এ নতুন replica সংখ্যা হিসাব:**
+
+```
+formula: ceil(currentReplicas × currentCPU% / targetCPU%)
+
+example:
+  currentReplicas: 2
+  currentCPU%:     120%
+  targetCPU%:      70%
+
+  ceil(2 × 120 / 70) = ceil(3.43) = 4
+
+real এ 3 দেখাতে পারে কারণ metrics lag করে আসে
+পরের tick এ আবার হিসাব করে বাড়াবে
+```
+
+**Scale down delay:**
+
+```
+load বন্ধ করলে সাথে সাথে replica কমে না
+default: 5 মিনিট অপেক্ষা করে তারপর কমায়
+
+কারণ: traffic spike এ বারবার up-down করলে
+      নতুন pod তৈরি + destroy এ সময় নষ্ট হয়
+      এই behavior কে "cooldown period" বলে
+```
+
 **Project এর values কেন এগুলো:**
 
 ```
@@ -205,6 +232,31 @@ containers:
       limits:
         cpu: "500m"
         memory: "512Mi"
+```
+
+### HPA Test করার workflow
+
+```bash
+# Step 1: load-test pod চালু করো (artificial traffic)
+kubectl run load-test --image=busybox --restart=Never -- \
+  sh -c "while true; do wget -q -O- http://sangam-server-service; done"
+
+# Step 2: আরেকটা terminal এ watch করো
+kubectl get hpa --watch
+
+# দেখবে:
+# cpu: 2%/70%    REPLICAS: 2   ← normal
+# cpu: 89%/70%   REPLICAS: 2   ← threshold পার হলো
+# cpu: 120%/70%  REPLICAS: 3   ← scale up হলো ✓
+
+# Step 3: load বন্ধ করো
+kubectl delete pod load-test
+
+# Step 4: scale down দেখো (5 মিনিট লাগবে)
+kubectl get hpa --watch
+# cpu: 0%/70%    REPLICAS: 3   ← load নেই কিন্তু এখনো 3
+# (5 মিনিট পর)
+# cpu: 0%/70%    REPLICAS: 2   ← scale down হলো ✓
 ```
 
 ### kubectl commands
