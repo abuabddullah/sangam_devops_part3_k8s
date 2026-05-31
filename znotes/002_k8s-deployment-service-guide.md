@@ -482,6 +482,38 @@ Fix:      proxy_pass http://sangam-server-service:80 — K8s Service name
 
 ---
 
+## rollout restart vs kubectl apply — কোনটা কখন
+
+```
+পরিস্থিতি                                      command
+────────────────────────────────────────────────────────────────────
+yaml এ image tag বদলেছে                        kubectl apply -f file.yaml
+(mongo:latest → mongo:4.4)                      K8s নিজেই বুঝবে, rolling update করবে
+
+image tag same (:latest) কিন্তু                 kubectl rollout restart deployment/<name>
+Docker Hub এ নতুন image push হয়েছে             K8s কে manually বলতে হয়
+(GitHub Actions এ build হলে এটাই লাগে)
+```
+
+```
+Rule মনে রাখার উপায়:
+  yaml বদলালে    → apply
+  yaml না বদলালে → rollout restart
+```
+
+### কেন এই পার্থক্য?
+
+```
+kubectl apply → yaml file পড়ে, আগেরটার সাথে compare করে, পার্থক্য থাকলে update করে
+                image tag বদলেছে → নতুন image দিয়ে Pod replace করে
+
+rollout restart → yaml দেখে না, শুধু Pod গুলো kill করে নতুন করে তোলে
+                  নতুন Pod উঠলে fresh image pull করে (imagePullPolicy: Always হলে)
+                  ":latest" tag এ নতুন image থাকলে এভাবেই পাওয়া যায়
+```
+
+---
+
 ## নতুন project এ কি বদলাবে
 
 ```
