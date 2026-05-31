@@ -131,6 +131,66 @@ spec:
           averageUtilization: 70    # CPU 70% হলে scale up
 ```
 
+### resources এর values এর মানে
+
+**CPU — "m" মানে millicores:**
+
+```
+1 CPU core = 1000m
+
+মনে করো ১টা পিৎজা = ১ CPU core
+পিৎজাকে ১০০০ টুকরো করো → প্রতিটা টুকরো = 1m
+
+requests: cpu: "100m"  → ১০০ টুকরো সবসময় দেওয়া থাকবে (guarantee)
+limits:   cpu: "500m"  → ৫০০ টুকরোর বেশি নেওয়া যাবে না (cap)
+```
+
+**Memory — "Mi" মানে Mebibytes (≈ MB):**
+
+```
+128Mi ≈ 128 MB RAM
+512Mi ≈ 512 MB RAM
+
+requests: memory: "128Mi"  → এই pod এর জন্য 128MB সবসময় reserve
+limits:   memory: "512Mi"  → এর বেশি নিলে pod kill হয় (OOMKilled)
+```
+
+**requests vs limits পার্থক্য:**
+
+```
+                requests                    limits
+                ──────────────────────────────────────────
+মানে            minimum guarantee           maximum allowed
+না পেলে         pod schedule হবে না         cpu throttle / memory kill
+HPA দেখে        শুধু requests দেখে %        requests এর উপর ভিত্তি করে
+```
+
+**HPA % হিসাব কিভাবে করে:**
+
+```
+requests cpu: 100m
+averageUtilization: 70%
+
+মানে: 100m এর 70% = 70m
+
+সব pod এর গড় CPU > 70m → scale up
+সব pod এর গড় CPU < 70m → scale down
+```
+
+**Project এর values কেন এগুলো:**
+
+```
+sangam-server (Express API):
+  requests cpu: 100m   → db query, business logic — একটু বেশি লাগে
+  limits   cpu: 500m   → traffic spike এ নিতে পারবে
+  memory:  128Mi/512Mi → Node.js এ যথেষ্ট
+
+sangam-client (nginx static):
+  requests cpu: 50m    → শুধু file serve — খুব কম লাগে
+  limits   cpu: 200m   → কখনো বেশি লাগে না
+  memory:  64Mi/256Mi  → nginx অনেক কম খায়
+```
+
 ### HPA কাজ করার শর্ত
 
 ```
