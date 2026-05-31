@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sangam-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sangam-server
+  template:
+    metadata:
+      labels:
+        app: sangam-server
+    spec:
+      containers:
+        - name: sangam-server
+          image: abuabddullah/sangam-server:latest
+          ports:
+            - containerPort: 5000
+          env:
+            - name: PORT
+              value: "5000"
+            - name: NODE_ENV
+              value: "production"
+            - name: MONGODB_URI
+              value: "mongodb://sangam-mongo-service:27017/sangamdb"
