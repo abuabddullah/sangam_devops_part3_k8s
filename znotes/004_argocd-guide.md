@@ -93,6 +93,51 @@ ArgoCD এর পর:
 solution: specific tag ব্যবহার করো (v1.0.1, git SHA, build number)
 ```
 
+**Actions এর extra commit কেন দরকার:**
+```
+ArgoCD শুধু Git দেখে।
+নতুন image Docker Hub এ গেলেই ArgoCD জানে না।
+Git এ yaml বদলালে তবেই ArgoCD বুঝবে।
+
+তাই Actions yaml বদলে commit করে → ArgoCD সেই commit দেখে → deploy করে
+
+Commit history এরকম দেখাবে:
+  ci: update image tags to abc123   ← Actions এর (yaml update)
+  feat: add new feature             ← তোমার (code change)
+  ci: update image tags to def456   ← Actions এর
+  fix: bug fix                      ← তোমার
+এটাই GitOps এর স্বাভাবিক pattern।
+```
+
+**Infinite Loop সমস্যা ও fix:**
+```
+সমস্যা:
+  Actions yaml update করে push করলে
+  → আবার workflow trigger হয়
+  → আবার yaml update → আবার push → ♾️
+
+fix: paths-ignore দাও workflow এ
+  on:
+    push:
+      branches: [main]
+      paths-ignore:
+        - 'k8s/server-deployment.yaml'
+        - 'k8s/client-deployment.yaml'
+
+মানে: এই দুটো file বদলালে workflow চলবে না
+```
+
+**Actions এর commit এর পর local sync:**
+```
+Actions বট GitHub এ commit করে
+তোমার local এ সেই commit নেই → git pull করো
+
+সবসময় code change করার আগে:
+  git pull   ← Actions এর commit local এ আনো
+  (code change করো)
+  git push
+```
+
 ---
 
 ## Install করার Steps
