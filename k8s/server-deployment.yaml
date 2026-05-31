@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: sangam-server
-          image: abuabddullah/sangam-server:latest
+          image: abuabddullah/sangam-server:a64eb010eeb4b4daa405f0e57e75c8ce70850533
           ports:
             - containerPort: 5000
           env:
