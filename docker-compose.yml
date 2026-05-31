@@ -1,6 +1,8 @@
 services:
   mongodb:
-    image: mongo:7
+    image: mongo:latest
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
     container_name: mongodb
     restart: unless-stopped
     volumes:
