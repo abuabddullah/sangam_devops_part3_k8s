@@ -3,6 +3,9 @@ name: Docker Build & Push
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'k8s/server-deployment.yaml'
+      - 'k8s/client-deployment.yaml'
 
 jobs:
   test-build:
