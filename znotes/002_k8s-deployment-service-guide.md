@@ -398,6 +398,90 @@ kubectl delete -f k8s/
 
 ---
 
+## Debugging — নিজে সমস্যা ধরার workflow
+
+```
+Pod সমস্যা হলে সবসময় এই ৩টা command:
+
+1. kubectl get pods
+   → STATUS দেখো
+
+2. kubectl logs deployment/<name>
+   → error message পড়ো (সবচেয়ে গুরুত্বপূর্ণ)
+
+3. kubectl describe pod <pod-name>
+   → Events section দেখো (image pull হলো? কোথায় schedule হলো?)
+```
+
+### STATUS দেখে কি বুঝবে
+
+```
+STATUS               মানে                          পরের কাজ
+──────────────────────────────────────────────────────────────
+Running              ঠিকঠাক চলছে                  কিছু করতে হবে না
+CrashLoopBackOff     চালু হয়েই crash করছে         kubectl logs দেখো
+Error                একবার crash করেছে             kubectl logs দেখো
+ImagePullBackOff     Docker Hub থেকে image নামেনি  image name ঠিক আছে?
+Pending              কোনো node এ schedule হয়নি    kubectl describe দেখো
+OOMKilled            RAM শেষ হয়ে গেছে             node এর RAM বাড়াও
+```
+
+### Common Error Messages
+
+```
+"host not found in upstream X"
+  → nginx.conf এ proxy_pass এ X নামে K8s Service নেই
+  → Service এর সঠিক name দাও (docker-compose name না)
+
+"MONGODB_URI is missing"
+  → Deployment এর env section এ নেই
+  → server-deployment.yaml এ env add করো
+
+"connection refused"
+  → target Service/Pod চলছে না
+  → আগে সেই Pod এর status দেখো
+
+"ImagePullBackOff"
+  → image name ভুল, বা Docker Hub এ image নেই
+  → Docker Hub এ গিয়ে image আছে কিনা confirm করো
+```
+
+### Docker Compose vs K8s — Name এর পার্থক্য
+
+```
+যেখানে চলছে    hostname কোথা থেকে আসে
+────────────────────────────────────────────────────────
+docker-compose  services: এর নাম → mongodb, server
+kubernetes      Service object এর metadata.name → sangam-mongo-service
+
+তাই nginx.conf, MONGODB_URI যেখানেই hostname লেখো:
+  K8s তে চালাবে → K8s Service object এর name লেখো
+  docker-compose → docker-compose service name লেখো
+```
+
+### Real Example (sangam project)
+
+```
+Problem:  sangam-client CrashLoopBackOff
+Command:  kubectl logs deployment/sangam-client
+Error:    "host not found in upstream server"
+Reason:   nginx.conf এ proxy_pass http://server:5000 — docker-compose এর name
+Fix:      proxy_pass http://sangam-server-service:80 — K8s Service name
+```
+
+### Fix করার পর workflow
+
+```
+1. code fix করো (nginx.conf / deployment.yaml / যেটা লাগে)
+2. git add + commit + push
+3. GitHub Actions নতুন image build করে Docker Hub এ push করবে
+4. Master node এ:
+     kubectl rollout restart deployment/<name>
+5. kubectl get pods দিয়ে verify করো
+```
+
+---
+
 ## নতুন project এ কি বদলাবে
 
 ```

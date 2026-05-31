@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
         - name: sangam-mongo
-          image: mongo:latest
+          image: mongo:4.4
           ports:
             - containerPort: 27017
