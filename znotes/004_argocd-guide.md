@@ -279,6 +279,27 @@ prune:
 
 ---
 
+## পুরো GitOps Flow (ArgoCD + CI/CD একসাথে)
+
+```
+git push (code change)
+      ↓
+test-build job (npm build — কোড ঠিক আছে কিনা দেখো)
+      ↓
+docker-build-push job
+  → Docker Hub এ push করো :latest + :sha দুটো tag
+      ↓
+update-k8s-manifests job
+  → server-deployment.yaml এ image tag বদলাও (:sha দিয়ে)
+  → GitHub এ commit করো
+      ↓
+ArgoCD দেখলো yaml বদলেছে (Git poll)
+      ↓
+cluster এ নতুন image deploy হলো ✓
+```
+
+---
+
 ## Image Tag Strategy (ArgoCD + CI/CD)
 
 ```
@@ -287,27 +308,46 @@ prune:
       অথবা: image: abuabddullah/sangam-server:abc123f  ← git SHA
 ```
 
-### GitHub Actions এ automatic tag update:
+### GitHub Actions এ automatic tag update (নতুন job):
 
 ```yaml
-# .github/workflows/deploy.yml এ add করো
+  update-k8s-manifests:
+    runs-on: ubuntu-latest
+    needs: [docker-build-push]
 
-- name: Update K8s image tag
-  run: |
-    TAG=${{ github.sha }}
-    sed -i "s|abuabddullah/sangam-server:.*|abuabddullah/sangam-server:${TAG}|g" \
-      k8s/server-deployment.yaml
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-- name: Commit updated yaml
-  run: |
-    git config user.email "actions@github.com"
-    git config user.name "GitHub Actions"
-    git add k8s/server-deployment.yaml
-    git commit -m "ci: update server image to ${GITHUB_SHA::7}"
-    git push
+      - name: Update image tags in deployment yamls
+        run: |
+          sed -i "s|abuabddullah/sangam-server:.*|abuabddullah/sangam-server:${{ github.sha }}|g" k8s/server-deployment.yaml
+          sed -i "s|abuabddullah/sangam-client:.*|abuabddullah/sangam-client:${{ github.sha }}|g" k8s/client-deployment.yaml
+
+      - name: Commit and push updated yamls
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add k8s/server-deployment.yaml k8s/client-deployment.yaml
+          git commit -m "ci: update image tags to ${{ github.sha }}"
+          git push
 ```
 
-এর পর ArgoCD Git এ নতুন commit দেখবে → auto deploy করবে।
+**কিভাবে কাজ করে:**
+```
+sed -i "s|পুরনো pattern|নতুন value|g" file
+→ deployment yaml এর image line খুঁজে বের করে
+→ tag অংশটা github.sha দিয়ে replace করে
+→ git commit + push → ArgoCD দেখে → deploy করে
+```
+
+**secrets.GITHUB_TOKEN:**
+```
+এটা GitHub নিজেই দেয় — আলাদা করে set করতে হয় না
+Actions কে repo তে push করার permission দেয়
+```
 
 ---
 
